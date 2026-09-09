@@ -1,13 +1,13 @@
 """
 URL configuration for the Workout Tracker project.
 
-All API routes are namespaced under /api/. No app-specific endpoints are
-wired up yet -- this phase only establishes the project foundation
-(admin, and drf-spectacular's own schema/documentation views).
+All API routes are namespaced under /api/. Authentication endpoints
+(register/login/refresh/logout/me) are wired up here; workout, exercise,
+and reports endpoints are not implemented yet.
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -16,6 +16,7 @@ from drf_spectacular.views import (
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/auth/", include("apps.accounts.urls")),
     # OpenAPI schema and documentation (drf-spectacular)
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(

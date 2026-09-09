@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import toast from "react-hot-toast";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { InlineAlert } from "../../components/common/InlineAlert";
 import { Button } from "../../components/ui/Button";
@@ -15,6 +15,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState(null);
   const {
@@ -27,9 +29,11 @@ export default function LoginPage() {
     setFormError(null);
     try {
       await login({ email: data.email, password: data.password });
-      // Only reached once the backend is connected and credentials are
-      // valid -- there is no fake success path.
       toast.success("Signed in successfully.");
+      // Return the visitor to whatever protected route they originally
+      // tried to reach (see ProtectedRoute), or /dashboard by default.
+      const redirectTo = location.state?.from?.pathname ?? "/dashboard";
+      navigate(redirectTo, { replace: true });
     } catch (error) {
       setFormError(getAuthErrorMessage(error));
     }

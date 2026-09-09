@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Check, Eye, EyeOff, Lock, Mail, User, X } from "lucide-react";
 import toast from "react-hot-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { InlineAlert } from "../../components/common/InlineAlert";
 import { Button } from "../../components/ui/Button";
@@ -23,6 +23,7 @@ const PASSWORD_RULES = [
 
 export default function RegisterPage() {
   const { register: registerUser } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formError, setFormError] = useState(null);
@@ -53,10 +54,12 @@ export default function RegisterPage() {
         username: data.username,
         email: data.email,
         password: data.password,
+        password_confirm: data.confirmPassword,
       });
-      // Only reached once the backend is connected and registration
-      // succeeds -- there is no fake success path.
-      toast.success("Account created successfully.");
+      // Registration never logs the user in -- send them to /login with
+      // their new credentials ready to use.
+      toast.success("Account created. Sign in to continue.");
+      navigate("/login", { replace: true });
     } catch (error) {
       setFormError(getAuthErrorMessage(error));
     }

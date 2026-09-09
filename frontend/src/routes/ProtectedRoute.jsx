@@ -6,19 +6,12 @@ import { useAuth } from "../hooks/useAuth";
 /**
  * Master switch for route protection.
  *
- * There is no backend to authenticate against yet, so every visitor is
- * "not signed in" by design in this phase (see AuthContext). If this
- * guard enforced login today, nobody -- including us, during UI
- * development -- could reach /dashboard, /workouts, etc.
- *
- * HOW TO ENABLE LATER: once Django JWT login/register are connected and
- * AuthContext.isAuthenticated can actually become true, flip this to
- * `true` (or wire it to an env flag, e.g.
- * `import.meta.env.VITE_ENFORCE_AUTH === "true"`). No other change is
- * needed -- the redirect/loading logic below is already fully wired, it
- * just doesn't run while this is false.
+ * Real Django JWT authentication is connected as of Frontend Phase 4, so
+ * this is enabled: unauthenticated visitors are redirected to /login, and
+ * the route they originally requested is preserved via location state so
+ * login can return them there afterward.
  */
-export const AUTH_GUARD_ENABLED = false;
+export const AUTH_GUARD_ENABLED = true;
 
 /**
  * Guards authenticated-only routes. Use as a layout route wrapping

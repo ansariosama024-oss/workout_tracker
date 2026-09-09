@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     # Third-party apps
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
     "drf_spectacular",
@@ -128,6 +129,18 @@ DATABASES = {
 
 AUTH_USER_MODEL = "accounts.User"
 
+# The API authenticates with email + password (see LoginSerializer), but
+# Django's default ModelBackend authenticates by USERNAME_FIELD, which is
+# "username" for this project's User model. EmailBackend adds email-based
+# lookup on top of that without changing the User model or its
+# USERNAME_FIELD. ModelBackend is kept as a fallback so username-based
+# authentication (e.g. the Django admin login form) keeps working
+# unchanged.
+AUTHENTICATION_BACKENDS = [
+    "apps.accounts.backends.EmailBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
 
 # ------------------------------------------------------------------------
 # Password validation
@@ -194,7 +207,7 @@ REST_FRAMEWORK = {
 # ------------------------------------------------------------------------
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,

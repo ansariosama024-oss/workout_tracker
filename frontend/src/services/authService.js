@@ -1,36 +1,19 @@
-/**
- * Thrown by every function in this file while the Django JWT endpoints
- * aren't connected yet. AuthContext catches this specific error and
- * surfaces an honest "not connected" message instead of ever pretending
- * an authentication operation succeeded.
- */
-export class AuthNotConnectedError extends Error {
-  constructor(
-    message = "Authentication isn't connected to the backend yet."
-  ) {
-    super(message);
-    this.name = "AuthNotConnectedError";
-  }
-}
+import apiClient from "./api";
 
 /**
  * Authentication service interface.
  *
- * Every function below is shaped exactly like its future implementation
- * (same name, same params, same return shape) but does not perform any
- * network request in this phase -- each one rejects with
- * AuthNotConnectedError instead. The real Axios call each function will
- * make is written out in a comment directly above the rejection, so
- * enabling backend integration later is a one-line swap per function.
+ * Thin wrappers around the Django JWT endpoints implemented in Backend
+ * Phase 3. Each function returns the parsed response body; error handling
+ * (mapping to a user-facing message) lives in getAuthErrorMessage below,
+ * not here, so callers (AuthContext, the auth pages) stay simple.
  */
 
 /** @param {{email: string, password: string}} credentials */
 export function login(credentials) {
-  void credentials;
-  // return apiClient
-  //   .post("/auth/login/", credentials)
-  //   .then((response) => response.data); // -> { user, access, refresh }
-  return Promise.reject(new AuthNotConnectedError());
+  return apiClient
+    .post("/auth/login/", credentials)
+    .then((response) => response.data); // -> { access, refresh, user }
 }
 
 /**
@@ -40,60 +23,56 @@ export function login(credentials) {
  *   username: string,
  *   email: string,
  *   password: string,
+ *   password_confirm: string,
  * }} data
  */
 export function register(data) {
-  void data;
-  // return apiClient
-  //   .post("/auth/register/", data)
-  //   .then((response) => response.data); // -> { user, access, refresh }
-  return Promise.reject(new AuthNotConnectedError());
+  return apiClient
+    .post("/auth/register/", data)
+    .then((response) => response.data); // -> { id, username, email, first_name, last_name }
 }
 
-/** @param {string|null} refreshToken */
-export function logout(refreshToken) {
-  void refreshToken;
-  // return apiClient
-  //   .post("/auth/logout/", { refresh: refreshToken })
-  //   .then((response) => response.data);
-  return Promise.reject(new AuthNotConnectedError());
+/** @param {string|null} refreshTokenValue */
+export function logout(refreshTokenValue) {
+  return apiClient
+    .post("/auth/logout/", { refresh: refreshTokenValue })
+    .then((response) => response.data);
 }
 
 export function getCurrentUser() {
-  // return apiClient.get("/auth/me/").then((response) => response.data);
-  return Promise.reject(new AuthNotConnectedError());
+  return apiClient.get("/auth/me/").then((response) => response.data);
 }
 
-/** @param {string|null} refreshToken */
-export function refreshToken(refreshToken_) {
-  void refreshToken_;
-  // return apiClient
-  //   .post("/auth/token/refresh/", { refresh: refreshToken_ })
-  //   .then((response) => response.data); // -> { access }
-  return Promise.reject(new AuthNotConnectedError());
+/** @param {string|null} refreshTokenValue */
+export function refreshToken(refreshTokenValue) {
+  return apiClient
+    .post("/auth/token/refresh/", { refresh: refreshTokenValue })
+    .then((response) => response.data); // -> { access, refresh? }
 }
 
 /**
- * Maps a caught error (an AuthNotConnectedError today, or a real Axios
- * error once the backend is connected) to a short, user-facing message.
- * Centralizing this means Login/Register/ForgotPassword all render
- * backend errors -- invalid credentials, duplicate email, server errors,
- * etc. -- consistently once those errors can actually occur.
+ * Maps a caught error (typically an Axios error from one of the calls
+ * above) to a short, user-facing message. Centralizing this means
+ * Login/Register/ForgotPassword all render backend errors -- invalid
+ * credentials, duplicate email, server errors, etc. -- consistently.
  */
 export function getAuthErrorMessage(error) {
-  if (error instanceof AuthNotConnectedError) {
-    return error.message;
-  }
-
   const status = error?.response?.status;
-  const detail =
-    error?.response?.data?.detail ?? error?.response?.data?.message;
+  const data = error?.response?.data;
 
-  if (status === 400) {
-    return detail || "Please check the highlighted fields and try again.";
+  if (status === 400 && data && typeof data === "object") {
+    // DRF validation errors come back as { field: ["message", ...] } or
+    // { non_field_errors: ["message"] }. Surface the first one found.
+    const firstKey = Object.keys(data)[0];
+    const firstValue = data[firstKey];
+    const message = Array.isArray(firstValue) ? firstValue[0] : firstValue;
+    if (message) return String(message);
   }
+
+  const detail = data?.detail ?? data?.message;
+
   if (status === 401) {
-    return "Invalid email or password.";
+    return detail || "Invalid email or password.";
   }
   if (status === 409) {
     return detail || "An account with these details already exists.";

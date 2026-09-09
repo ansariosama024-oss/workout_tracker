@@ -13,21 +13,11 @@ export const AuthContext = createContext(undefined);
 /**
  * Authentication context.
  *
- * Shape is fully built out for the real Django JWT flow (user, tokens,
- * login/register/logout, token refresh, fetching the current user), but
- * nothing here fakes success:
- *
- *   - Initial state is always unauthenticated (user: null, no tokens).
- *   - login()/register()/refreshAccessToken()/fetchCurrentUser() all call
- *     authService, which rejects with AuthNotConnectedError in this
- *     phase -- so none of them can ever mark the app as authenticated.
- *   - logout() clears local state and best-effort notifies the backend,
- *     but never pretends a session existed.
- *
- * Initialization (the `isLoading` flag below) stands in for the future
- * "check stored tokens -> refresh if needed -> fetch /auth/me/" sequence.
- * Since no tokens are ever stored yet, it resolves to unauthenticated
- * immediately, without making any network calls.
+ * Wraps the real Django JWT endpoints (see services/authService.js):
+ * register/login/logout/refresh/me. Session state (user + tokens) is
+ * restored on startup from tokenStorage, and kept in sync with a single
+ * source of truth here so every consumer (Sidebar, ProtectedRoute,
+ * ProfilePage, ...) sees the same authenticated/unauthenticated state.
  */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -36,15 +26,6 @@ export function AuthProvider({ children }) {
     getRefreshToken()
   );
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Future: if an access token is already stored, this is where it
-    // would be validated (and refreshed if expired) before calling
-    // fetchCurrentUser() to repopulate `user`. There is nothing to
-    // validate yet since tokenStorage is never written to in this phase,
-    // so initialization always settles on "unauthenticated".
-    setIsLoading(false);
-  }, []);
 
   const applySession = useCallback((data) => {
     setTokens({ access: data?.access, refresh: data?.refresh });
@@ -60,38 +41,79 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  // On startup: if a token is already stored, validate it by fetching the
+  // current user. api.js's response interceptor transparently refreshes
+  // an expired access token and retries once, so this single call covers
+  // "token still valid", "token expired but refresh works", and "nothing
+  // works -> log out" in one path. With no stored token at all, this
+  // resolves to unauthenticated immediately, with no network call.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function initialize() {
+      if (!getAccessToken()) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const currentUser = await authService.getCurrentUser();
+        if (!cancelled) setUser(currentUser);
+      } catch {
+        if (!cancelled) clearSession();
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    initialize();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // api.js dispatches this when a background request's silent token
+  // refresh fails (refresh token expired/blacklisted). Resetting session
+  // state here is what makes ProtectedRoute redirect to /login on the
+  // next render -- no other wiring is needed.
+  useEffect(() => {
+    window.addEventListener("auth:session-expired", clearSession);
+    return () => window.removeEventListener("auth:session-expired", clearSession);
+  }, [clearSession]);
+
   /** @param {{email: string, password: string}} credentials */
   const login = useCallback(
     async (credentials) => {
       const data = await authService.login(credentials);
-      // Only reached once the backend is connected and login succeeds.
       applySession(data);
+      // The login response's user is intentionally minimal (id, username,
+      // email, first_name, last_name). Fetch the full profile
+      // (date_joined, updated_at) in the background; if it fails, the
+      // minimal user from above is still in place.
+      authService
+        .getCurrentUser()
+        .then(setUser)
+        .catch(() => {});
       return data;
     },
     [applySession]
   );
 
   /** @param {object} payload */
-  const register = useCallback(
-    async (payload) => {
-      const data = await authService.register(payload);
-      // Only reached once the backend is connected and registration
-      // succeeds. Some APIs log the user in immediately on register and
-      // some don't; if the response includes tokens, honor them.
-      if (data?.access) {
-        applySession(data);
-      }
-      return data;
-    },
-    [applySession]
-  );
+  const register = useCallback(async (payload) => {
+    // Registration never logs the user in (see backend RegisterView) --
+    // it only returns the created user, with no tokens. The caller
+    // (RegisterPage) is responsible for redirecting to /login afterward.
+    return authService.register(payload);
+  }, []);
 
   const logout = useCallback(async () => {
     try {
       await authService.logout(getRefreshToken());
     } catch {
-      // Best-effort: even if the backend call fails (or, in this phase,
-      // is never actually connected), the local session still clears.
+      // Best-effort: even if the backend call fails (token already
+      // expired, network error, etc.), the local session still clears.
     } finally {
       clearSession();
     }
@@ -99,8 +121,11 @@ export function AuthProvider({ children }) {
 
   const refreshAccessToken = useCallback(async () => {
     const data = await authService.refreshToken(getRefreshToken());
-    setTokens({ access: data?.access, refresh: refreshTokenValue });
+    // The backend rotates refresh tokens, so store the new one when
+    // present rather than assuming the old one is still valid.
+    setTokens({ access: data?.access, refresh: data?.refresh ?? refreshTokenValue });
     setAccessTokenState(data?.access ?? null);
+    if (data?.refresh) setRefreshTokenValue(data.refresh);
     return data;
   }, [refreshTokenValue]);
 
