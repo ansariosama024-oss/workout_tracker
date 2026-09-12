@@ -1,9 +1,9 @@
 import apiClient from "./api";
 
 /**
- * Exercise library service interface, ready for backend integration in a
- * later phase. Not yet called from any page -- the workout form currently
- * uses utils/tempExerciseOptions.js instead.
+ * Exercise service: read-only wrapper around the Django Exercise catalog
+ * API. Used by the workout builder's exercise selector to look up real
+ * Exercise IDs (see components/workout/WorkoutForm.jsx).
  */
 
 /** @param {Record<string, string|number>} [params] - search/filter query */

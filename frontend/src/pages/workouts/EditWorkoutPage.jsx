@@ -1,27 +1,79 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { FileQuestion } from "lucide-react";
 
+import { Button } from "../../components/ui/Button";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { Skeleton } from "../../components/ui/Skeleton";
+import { ErrorState } from "../../components/common/ErrorState";
 import { PageHeader } from "../../components/common/PageHeader";
-import { WorkoutForm } from "../../components/workout/WorkoutForm";
+import { WorkoutForm, mapWorkoutToFormValues } from "../../components/workout/WorkoutForm";
+import * as workoutService from "../../services/workoutService";
 
 /**
  * Edit Workout reuses the exact same <WorkoutForm /> used by Create
  * Workout -- see components/workout/WorkoutForm.jsx -- so the form itself
- * is never duplicated.
- *
- * There is no workoutService.getWorkout() call yet, so this page can't
- * pre-fill real data. It shows a brief loading state (standing in for the
- * future fetch-by-id) and then renders the form with empty defaults.
+ * is never duplicated. This page's only job is fetching the real workout
+ * by ID and translating it into the form's field shape.
  */
 export default function EditWorkoutPage() {
   const { id } = useParams();
-  const [isLoading, setIsLoading] = useState(true);
+  const [status, setStatus] = useState("loading"); // loading | error | not-found | ready
+  const [defaultValues, setDefaultValues] = useState(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, [id]);
+  const loadWorkout = () => {
+    setStatus("loading");
+    workoutService
+      .getWorkout(id)
+      .then((workout) => {
+        setDefaultValues(mapWorkoutToFormValues(workout));
+        setStatus("ready");
+      })
+      .catch((error) => {
+        setStatus(error?.response?.status === 404 ? "not-found" : "error");
+      });
+  };
+
+  useEffect(loadWorkout, [id]);
+
+  if (status === "loading") {
+    return (
+      <div>
+        <PageHeader title="Edit workout" />
+        <div className="space-y-4">
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "not-found") {
+    return (
+      <div>
+        <PageHeader title="Edit workout" />
+        <EmptyState
+          icon={FileQuestion}
+          title="Workout not found"
+          description="This workout doesn't exist, or it doesn't belong to your account."
+          action={
+            <Button as={Link} to="/workouts" variant="outline">
+              Back to workouts
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div>
+        <PageHeader title="Edit workout" />
+        <ErrorState onRetry={loadWorkout} />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -29,22 +81,7 @@ export default function EditWorkoutPage() {
         title="Edit workout"
         description="Update the plan and exercises for this session."
       />
-
-      {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      ) : (
-        <>
-          <div className="mb-4 rounded-lg border border-primary/20 bg-primary-subtle px-4 py-3 text-sm text-primary">
-            This workout&apos;s existing details will pre-fill automatically
-            once the backend API is connected. For now the form starts
-            blank.
-          </div>
-          <WorkoutForm mode="edit" />
-        </>
-      )}
+      <WorkoutForm mode="edit" workoutId={id} defaultValues={defaultValues} />
     </div>
   );
 }

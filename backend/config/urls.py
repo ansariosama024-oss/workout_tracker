@@ -2,8 +2,9 @@
 URL configuration for the Workout Tracker project.
 
 All API routes are namespaced under /api/. Authentication endpoints
-(register/login/refresh/logout/me) and the Workout CRUD API are wired up
-here; exercise and reports endpoints are not implemented yet.
+(register/login/refresh/logout/me), the Workout CRUD API, and a read-only
+Exercise catalog API are wired up here; reports endpoints are not
+implemented yet.
 """
 
 from django.contrib import admin
@@ -18,6 +19,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/auth/", include("apps.accounts.urls")),
     path("api/workouts/", include("apps.workouts.urls")),
+    path("api/exercises/", include("apps.exercises.urls")),
     # OpenAPI schema and documentation (drf-spectacular)
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(

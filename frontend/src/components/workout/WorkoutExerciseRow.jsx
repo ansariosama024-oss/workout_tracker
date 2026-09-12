@@ -3,20 +3,18 @@ import { Trash2 } from "lucide-react";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
 import { Textarea } from "../ui/Textarea";
-import { TEMP_LOCAL_EXERCISE_OPTIONS } from "../../utils/tempExerciseOptions";
 
 /**
  * One exercise entry inside the workout builder (Create/Edit Workout).
- *
- * The exercise dropdown is populated from TEMP_LOCAL_EXERCISE_OPTIONS for
- * now -- a clearly-labeled, local-only placeholder list -- and will be
- * replaced by exerciseService.getExercises() once the API is connected.
  *
  * @param {number} index - position within the field array
  * @param {import("react-hook-form").UseFormRegister} register
  * @param {object} [errors] - errors.workout_exercises[index], if any
  * @param {() => void} onRemove
  * @param {boolean} canRemove
+ * @param {{id: number|string, name: string}[]} exerciseOptions - from
+ *   exerciseService.getExercises(), fetched once by the parent form
+ * @param {boolean} exerciseOptionsLoading
  */
 export function WorkoutExerciseRow({
   index,
@@ -24,6 +22,8 @@ export function WorkoutExerciseRow({
   errors,
   onRemove,
   canRemove,
+  exerciseOptions,
+  exerciseOptionsLoading,
 }) {
   const rowErrors = errors ?? {};
 
@@ -36,11 +36,14 @@ export function WorkoutExerciseRow({
         <div className="flex-1">
           <Select
             label="Exercise"
-            placeholder="Select an exercise"
-            options={TEMP_LOCAL_EXERCISE_OPTIONS.map((exercise) => ({
-              value: exercise.id,
+            placeholder={
+              exerciseOptionsLoading ? "Loading exercises..." : "Select an exercise"
+            }
+            options={exerciseOptions.map((exercise) => ({
+              value: String(exercise.id),
               label: exercise.name,
             }))}
+            disabled={exerciseOptionsLoading}
             error={rowErrors.exercise?.message}
             required
             {...register(`workout_exercises.${index}.exercise`, {

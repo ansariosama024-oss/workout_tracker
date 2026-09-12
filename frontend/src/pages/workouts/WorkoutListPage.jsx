@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dumbbell, Plus, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -7,29 +7,57 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Skeleton } from "../../components/ui/Skeleton";
+import { ErrorState } from "../../components/common/ErrorState";
 import { PageHeader } from "../../components/common/PageHeader";
 import { WorkoutCard } from "../../components/workout/WorkoutCard";
+import * as workoutService from "../../services/workoutService";
 import { WORKOUT_STATUS_OPTIONS } from "../../utils/constants";
 
-/**
- * Workout list. No workoutService.getWorkouts() call is wired up yet, so
- * the list briefly "loads" and then settles into an honest empty state.
- */
+/** Workout list, backed by GET /api/workouts/. */
 export default function WorkoutListPage() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [status, setStatus] = useState("loading"); // loading | error | ready
+  const [workouts, setWorkouts] = useState([]);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [date, setDate] = useState("");
 
-  // Placeholder data set -- always empty until workoutService is connected.
-  const workouts = [];
+  const loadWorkouts = () => {
+    setStatus("loading");
+    workoutService
+      .getWorkouts()
+      .then((data) => {
+        const results = Array.isArray(data) ? data : data.results ?? [];
+        // WorkoutCard expects `exercise_count`; the API returns the full
+        // nested `exercises` array (same serializer as the detail view),
+        // so derive the count here rather than changing WorkoutCard.
+        setWorkouts(
+          results.map((workout) => ({
+            ...workout,
+            exercise_count: workout.exercises?.length ?? 0,
+          }))
+        );
+        setStatus("ready");
+      })
+      .catch(() => setStatus("error"));
+  };
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  useEffect(loadWorkouts, []);
 
-  const hasFilters = Boolean(search || status || date);
+  const hasFilters = Boolean(search || statusFilter || date);
+
+  const filteredWorkouts = useMemo(() => {
+    return workouts.filter((workout) => {
+      if (
+        search &&
+        !workout.name?.toLowerCase().includes(search.toLowerCase())
+      ) {
+        return false;
+      }
+      if (statusFilter && workout.status !== statusFilter) return false;
+      if (date && workout.scheduled_date !== date) return false;
+      return true;
+    });
+  }, [workouts, search, statusFilter, date]);
 
   return (
     <div>
@@ -54,8 +82,8 @@ export default function WorkoutListPage() {
         <Select
           placeholder="All statuses"
           options={WORKOUT_STATUS_OPTIONS}
-          value={status}
-          onChange={(event) => setStatus(event.target.value)}
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
           aria-label="Filter by status"
         />
         <Input
@@ -66,13 +94,15 @@ export default function WorkoutListPage() {
         />
       </div>
 
-      {isLoading ? (
+      {status === "loading" ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton.Card key={index} />
           ))}
         </div>
-      ) : workouts.length === 0 ? (
+      ) : status === "error" ? (
+        <ErrorState onRetry={loadWorkouts} />
+      ) : filteredWorkouts.length === 0 ? (
         <EmptyState
           icon={Dumbbell}
           title={hasFilters ? "No workouts match your filters" : "No workouts yet"}
@@ -92,11 +122,11 @@ export default function WorkoutListPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {workouts.map((workout) => (
+            {filteredWorkouts.map((workout) => (
               <WorkoutCard key={workout.id} workout={workout} />
             ))}
           </div>
-          {/* Pagination placeholder -- wired up once the API supports paging. */}
+          {/* Pagination placeholder -- wired up once list volume needs it. */}
           <div className="mt-6 flex items-center justify-center gap-2">
             <Button variant="outline" size="sm" disabled>
               Previous

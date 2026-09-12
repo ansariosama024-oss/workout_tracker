@@ -1,4 +1,5 @@
 import apiClient from "./api";
+import { parseApiErrorMessage } from "../utils/apiErrors";
 
 /**
  * Authentication service interface.
@@ -57,32 +58,5 @@ export function refreshToken(refreshTokenValue) {
  * credentials, duplicate email, server errors, etc. -- consistently.
  */
 export function getAuthErrorMessage(error) {
-  const status = error?.response?.status;
-  const data = error?.response?.data;
-
-  if (status === 400 && data && typeof data === "object") {
-    // DRF validation errors come back as { field: ["message", ...] } or
-    // { non_field_errors: ["message"] }. Surface the first one found.
-    const firstKey = Object.keys(data)[0];
-    const firstValue = data[firstKey];
-    const message = Array.isArray(firstValue) ? firstValue[0] : firstValue;
-    if (message) return String(message);
-  }
-
-  const detail = data?.detail ?? data?.message;
-
-  if (status === 401) {
-    return detail || "Invalid email or password.";
-  }
-  if (status === 409) {
-    return detail || "An account with these details already exists.";
-  }
-  if (status && status >= 500) {
-    return "The server is temporarily unavailable. Please try again shortly.";
-  }
-  if (error?.message === "Network Error") {
-    return "Couldn't reach the server. Check your connection and try again.";
-  }
-
-  return detail || "Something went wrong. Please try again.";
+  return parseApiErrorMessage(error);
 }
