@@ -5,64 +5,74 @@
 /* ------------------------------------------------------------------------
  * Design tokens
  *
- * Values are stored as "R G B" triples (no rgb() wrapper) so Tailwind can
- * compose them with an alpha channel via rgb(var(--x) / <alpha-value>).
+ * Premium fitness theme
+ * Primary / Accent: Lime #BAFF24
  * ---------------------------------------------------------------------- */
 
 :root {
-  --color-ink: 18 20 28;
-  --color-paper: 245 246 248;
-  --color-surface: 255 255 255;
-  --color-border: 226 229 235;
+  --color-ink: 10 11 13;
+  --color-paper: 10 11 13;
+  --color-surface: 18 20 24;
+  --color-border: 42 45 51;
 
-  --color-primary: 45 91 255;
-  --color-primary-hover: 30 72 224;
-  --color-primary-subtle: 228 234 255;
+  /* Brand — Lime */
+  --color-primary: 186 255 36;
+  --color-primary-hover: 204 255 82;
+  --color-primary-subtle: 35 48 12;
 
-  --color-accent: 255 90 60;
-  --color-accent-hover: 232 72 44;
-  --color-accent-subtle: 255 228 221;
+  --color-accent: 186 255 36;
+  --color-accent-hover: 204 255 82;
+  --color-accent-subtle: 35 48 12;
 
-  --color-success: 22 163 74;
-  --color-success-subtle: 220 245 227;
-
-  --color-warning: 217 119 6;
-  --color-warning-subtle: 254 236 210;
-
-  --color-danger: 220 38 38;
-  --color-danger-subtle: 253 224 224;
-
-  --color-text-primary: 20 22 30;
-  --color-text-secondary: 82 88 102;
-  --color-text-muted: 138 144 158;
-}
-
-.dark {
-  --color-ink: 12 13 18;
-  --color-paper: 15 17 24;
-  --color-surface: 24 27 37;
-  --color-border: 40 44 58;
-
-  --color-primary: 92 130 255;
-  --color-primary-hover: 116 149 255;
-  --color-primary-subtle: 33 43 82;
-
-  --color-accent: 255 122 96;
-  --color-accent-hover: 255 143 120;
-  --color-accent-subtle: 62 34 30;
-
-  --color-success: 52 199 107;
-  --color-success-subtle: 20 47 32;
+  /* Semantic colors */
+  --color-success: 34 197 94;
+  --color-success-subtle: 20 50 30;
 
   --color-warning: 245 158 11;
+  --color-warning-subtle: 56 40 12;
+
+  --color-danger: 239 68 68;
+  --color-danger-subtle: 58 24 24;
+
+  /* Text */
+  --color-text-primary: 245 245 245;
+  --color-text-secondary: 163 163 163;
+  --color-text-muted: 115 115 115;
+}
+
+/* ------------------------------------------------------------------------
+ * Dark theme
+ * ---------------------------------------------------------------------- */
+
+.dark {
+  --color-ink: 8 9 11;
+  --color-paper: 10 11 13;
+  --color-surface: 18 20 24;
+  --color-border: 42 45 51;
+
+  /* Brand — Lime */
+  --color-primary: 186 255 36;
+  --color-primary-hover: 204 255 82;
+  --color-primary-subtle: 35 48 12;
+
+  --color-accent: 186 255 36;
+  --color-accent-hover: 204 255 82;
+  --color-accent-subtle: 35 48 12;
+
+  /* Semantic colors */
+  --color-success: 52 211 102;
+  --color-success-subtle: 20 47 32;
+
+  --color-warning: 251 191 36;
   --color-warning-subtle: 56 40 12;
 
   --color-danger: 248 84 84;
   --color-danger-subtle: 58 24 24;
 
-  --color-text-primary: 240 241 245;
-  --color-text-secondary: 178 183 196;
-  --color-text-muted: 118 124 138;
+  /* Text */
+  --color-text-primary: 245 245 245;
+  --color-text-secondary: 163 163 163;
+  --color-text-muted: 115 115 115;
 }
 
 /* ------------------------------------------------------------------------
@@ -71,13 +81,18 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  background: rgb(var(--color-paper));
 }
 
 body {
   @apply bg-paper text-text-primary antialiased;
   font-family: Inter, sans-serif;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
+
+/* Premium typography */
 
 h1,
 h2,
@@ -86,18 +101,72 @@ h4 {
   font-family: "Space Grotesk", sans-serif;
 }
 
+/* ------------------------------------------------------------------------
+ * Selection
+ * ---------------------------------------------------------------------- */
+
 ::selection {
-  @apply bg-primary/20 text-text-primary;
+  background: rgb(var(--color-primary) / 0.22);
+  color: rgb(var(--color-text-primary));
 }
 
-/* Consistent, visible keyboard focus everywhere */
+/* ------------------------------------------------------------------------
+ * Keyboard focus
+ * ---------------------------------------------------------------------- */
+
 :focus-visible {
   outline: 2px solid rgb(var(--color-primary));
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* Thin, theme-aware scrollbars */
+/* ------------------------------------------------------------------------
+ * Links
+ * ---------------------------------------------------------------------- */
+
+a {
+  transition:
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+a:hover {
+  color: rgb(var(--color-primary));
+}
+
+/* ------------------------------------------------------------------------
+ * Buttons / interactive elements
+ * ---------------------------------------------------------------------- */
+
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ------------------------------------------------------------------------
+ * Inputs
+ * ---------------------------------------------------------------------- */
+
+input,
+textarea,
+select {
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: rgb(var(--color-primary));
+  box-shadow: 0 0 0 3px rgb(var(--color-primary) / 0.08);
+}
+
+/* ------------------------------------------------------------------------
+ * Thin, theme-aware scrollbars
+ * ---------------------------------------------------------------------- */
+
 * {
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--color-border)) transparent;
@@ -108,10 +177,69 @@ h4 {
   height: 8px;
 }
 
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 *::-webkit-scrollbar-thumb {
   background-color: rgb(var(--color-border));
   border-radius: 9999px;
 }
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--color-primary) / 0.55);
+}
+
+/* ------------------------------------------------------------------------
+ * Premium lime glow utility
+ * ---------------------------------------------------------------------- */
+
+.lime-glow {
+  box-shadow:
+    0 0 20px rgb(var(--color-primary) / 0.12),
+    0 0 45px rgb(var(--color-primary) / 0.05);
+}
+
+.lime-text-glow {
+  text-shadow: 0 0 20px rgb(var(--color-primary) / 0.18);
+}
+
+/* ------------------------------------------------------------------------
+ * Signature element: pulse line
+ * ---------------------------------------------------------------------- */
+
+.pulse-divider {
+  display: block;
+  width: 100%;
+  height: 10px;
+  background-repeat: repeat-x;
+  background-size: 64px 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='10' viewBox='0 0 64 10'%3E%3Cpath d='M0 5 H20 L24 1 L28 9 L32 5 H64' fill='none' stroke='%23BAFF24' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  opacity: 0.55;
+}
+
+.pulse-divider-sm {
+  height: 6px;
+  background-size: 40px 6px;
+}
+
+/* ------------------------------------------------------------------------
+ * Skeleton shimmer surface
+ * ---------------------------------------------------------------------- */
+
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    rgb(var(--color-border) / 0.5) 25%,
+    rgb(var(--color-border) / 0.9) 37%,
+    rgb(var(--color-border) / 0.5) 63%
+  );
+  background-size: 200% 100%;
+}
+
+/* ------------------------------------------------------------------------
+ * Reduced motion
+ * ---------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -123,38 +251,12 @@ h4 {
     scroll-behavior: auto !important;
   }
 }
-
-/* ------------------------------------------------------------------------
- * Signature element: the "pulse line"
- *
- * A quiet EKG-style trace used as a divider under page/section headers and
- * beneath the wordmark. It's the one recurring visual signature of the
- * product -- a nod to "the pulse of your training" -- so it appears in
- * exactly these two contexts and nowhere else.
- * ---------------------------------------------------------------------- */
-
-.pulse-divider {
-  display: block;
-  width: 100%;
-  height: 10px;
-  background-repeat: repeat-x;
-  background-size: 64px 10px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='10' viewBox='0 0 64 10'%3E%3Cpath d='M0 5 H20 L24 1 L28 9 L32 5 H64' fill='none' stroke='%23FF5A3C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  opacity: 0.55;
+/* Hide horizontal scrollbar for premium navigation */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.pulse-divider-sm {
-  height: 6px;
-  background-size: 40px 6px;
-}
-
-/* Skeleton shimmer surface */
-.skeleton-shimmer {
-  background-image: linear-gradient(
-    90deg,
-    rgb(var(--color-border) / 0.5) 25%,
-    rgb(var(--color-border) / 0.9) 37%,
-    rgb(var(--color-border) / 0.5) 63%
-  );
-  background-size: 200% 100%;
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
